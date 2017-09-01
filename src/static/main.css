@@ -1,0 +1,63 @@
+body {
+    margin: 0;
+    font-family: 'Open Sans', sans-serif;
+}
+#top-bar {
+    width: 100%;
+    height: 40px;
+    background-color: #00d687;
+    display: flex;
+    justify-content: center;
+}
+
+#logo {
+    color: white;
+}
+.container {
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+@media (min-width: 1200px) {
+    .container {
+        width: 1170px;
+    }
+}
+
+
+@media (min-width: 992px) {
+    .container {
+        width: 970px;
+    }
+}
+
+@media (min-width: 768px) {
+    .container {
+        width: 750px;
+    }
+}
+
+.section {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+.beer-tile {
+    cursor: pointer;
+    height: 100px;
+    width: 300px;
+    text-align: center;
+    margin: 6px;
+    border: 1px solid #dfdfdf;
+    font-size: .9em;
+    color: inherit;
+    text-decoration: none;
+}
+
+.section-header {
+    font-size: 1.7em;
+    font-weight: normal;
+}
