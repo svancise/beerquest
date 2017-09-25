@@ -11,15 +11,20 @@
 <body>
     <div id="app">
         <div id="top-bar">
-            <img src="../static/logo.svg" id="logo" alt="BeerQuest"/>
+            <a  id="logo" href="/">
+                <img src="../static/logo.svg" alt="BeerQuest" />
+            </a>
         </div>
         <div class="container">
             <P class="section-header">{{ beerList["type"] }}</p>
             <div class="section">
-                {% for beer in beerList["beers"] %}
-                    <a class="beer-tile" href="/{{beer['url']}}">
+                {% for beer in beerList %}
+                    <a class="beer-tile" href="{{beer['untappdUrl']}}">
+                        <img src='../static/img/{{ beer["venue"]["logo"] }}' />
                         <div>{{ beer["name"] }}</div>
-                        <div>{{ beer["details"] }}</div>
+                        <div>{{ beer["venue"]["name"] }}</div>
+                        <div>{{ beer["details"]["abv"] }}</div>
+                        <div>{{ beer["details"]["ibu"] }}</div>
                     </a>
                 {% endfor %}
           </div>

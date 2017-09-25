@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import re
-import os
+import os, shutil
 from jinja2 import Environment, FileSystemLoader
 
 PATH = os.path.dirname(os.path.abspath(__file__))
@@ -25,23 +25,54 @@ VENUES_TO_COLLECT = [
 def render_template(template_filename, context):
     return TEMPLATE_ENVIRONMENT.get_template(template_filename).render(context)
 
-def create_index_html(data):
-    # we need to render a page for each beer type
-    for key in data["typeKeys"]:
-        # create a folder for the type so we can have clean urls
-        os.makedirs("../site/" + key[0])
+def create_site(data):
+    # empty the site folder
+    folder = "../site"
+    for the_file in os.listdir(folder):
+        file_path = os.path.join(folder, the_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(e)
 
-        fileName = "../site/" + key[0] + "/index.html"
+    # we need to render a page for each beer type
+    beersByType = {};
+    for beer in data:
+        # create a key based on the beer's type
+        beerTypeKey = re.sub(r'\W+', '', beer['type'])
+
+        # add the type key if it is not currently added then add the beer
+        if beerTypeKey not in beersByType:
+            beersByType[beerTypeKey] = {
+                'type': beer['type'],
+                'beers' : [beer]
+            }
+        else:
+            beersByType[beerTypeKey]['beers'].append(beer)
+
+
+    for key in beersByType:
+        # create a folder for the type so we can have clean urls
+        os.makedirs("../site/" + key)
+
+        fileName = "../site/" + key + "/index.html"
         with open(fileName, 'w') as f:
             # render our jinja template with all the beers for this type
-            html = render_template('typePage.html', { "beerList" : data["types"][key[0]]})
+            html = render_template('typePage.html',
+                { "beerList" : beersByType[key]["beers"] })
             f.write(html)
 
     # finally we render the home page
     fileName = "../site/index.html"
     with open(fileName, 'w') as f:
-        html = render_template('index.html', data)
+        html = render_template('index.html', {"beers": beersByType})
         f.write(html)
+
+    # copy static assests
+    shutil.copytree("./static", "../site/static")
 
 # gathers all of the info for our desired venues
 def getBeers():
@@ -49,6 +80,7 @@ def getBeers():
     beersByType = {}
     typeKeys = []
 
+    beers = []
 
     for venue in VENUES_TO_COLLECT:
         # get the untapped page for the supplied venue.
@@ -58,11 +90,20 @@ def getBeers():
         # load the page into beautiful soup
         soup = BeautifulSoup(pageText, "html.parser")
 
+        # download the brewery's logo
+        logoUrl = soup.find('div', class_='logo').find('img')["src"]
+        logoName = logoUrl.split('/')[len(logoUrl.split('/')) - 1]
+        logoRequest = requests.get(logoUrl)
+        if logoRequest.status_code == 200:
+            with open('./static/img/' + logoName, 'wb') as f:
+                f.write(logoRequest.content)
+
         # dict storing all of the information for the venue
-        venuDict = {
+        venueDict = {
             'name' : soup.find('div', class_='venue-name').find('h1').text,
             'address' : soup.find('p', class_='address').text.strip().replace(' ( Map )', ''),
             'phone' : soup.find('p', class_='phone').text,
+            'logo': logoName,
             'updated' : soup.find('span', class_='updated-time')['data-time'],
             'untappdUrl' : venue,
             'beersOnTap' : []
@@ -74,7 +115,11 @@ def getBeers():
                 infoData = beer.find('div', class_='beer-info')
 
                 # we need to strip the special characters from the beer details
-                details = re.split(u"â\x80¢",infoData.find('h6').find('span').contents[0])
+                details = re.split("•\s+", infoData.find('h6').find('span').contents[0])
+
+                # get abv and ibu values
+                abv = re.sub(r'\s+ABV\s+', '', details[0])
+                ibu = re.sub(r'\s+IBU\s+', '', details[1])
 
                 beerType = infoData.find('em').text.split('-')
 
@@ -83,39 +128,23 @@ def getBeers():
                     'name' : infoData.find('a').text,
                     'type' : beerType[0].strip(),
                     'subtype': beerType[1].strip() if len(beerType) > 1 else None,
-                    'details' : details[0].strip(),
-                    'untappdUrl' : 'https://untappd.com' + infoData.find('a')['href']
+                    'details' : {
+                        'abv': abv,
+                        'ibu': ibu
+                    },
+                    'untappdUrl' : 'https://untappd.com' + infoData.find('a')['href'],
+                    'venue' : venueDict
                 }
 
-                # add the beer to the venue's information
-                venuDict['beersOnTap'].append(beer)
+                # add the beer to our list
+                beers.append(beer)
 
-                # create a key based on the beer's type
-                beerTypeKey = re.sub(r'\W+', '', beer['type'])
-
-                # add the type key if it is not currently added then add the beer
-                if beerTypeKey not in beersByType:
-                    typeKeys.append((beerTypeKey, beer["type"]))
-                    beersByType[beerTypeKey] = {
-                        'type': beer['type'],
-                        'beers': [beer]
-                    }
-                else:
-                    beersByType[beerTypeKey]['beers'].append(beer)
-
-    # sort the keys
-    typeKeys.sort(key=lambda x: x[0])
-
-    return {
-        "venues" : beersByVenue,
-        "types" : beersByType,
-        "typeKeys": typeKeys
-    }
+    return beers
 
 
 def main():
     beers = getBeers()
-    create_index_html(beers)
+    create_site(beers)
 
 if __name__ == '__main__':
     main()

@@ -1,2 +1,3 @@
 site/*
 .vagrant/*
+src/static/img/*

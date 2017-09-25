@@ -16,8 +16,8 @@
         <div class="container">
             <p class="section-header">What are you looking for?</p>
             <div class="section">
-                {% for type in typeKeys %}
-                    <a class="beer-tile" href="/{{type[0]}}">{{ type[1] }}</a>
+                {% for type in beers %}
+                    <a class="beer-tile" href="/{{ type }}">{{ beers[type]["type"] }}</a>
                 {% endfor %}
           </div>
         </div>
