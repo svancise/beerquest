@@ -105,8 +105,7 @@ def getBeers():
             'phone' : soup.find('p', class_='phone').text,
             'logo': logoName,
             'updated' : soup.find('span', class_='updated-time')['data-time'],
-            'untappdUrl' : venue,
-            'beersOnTap' : []
+            'untappdUrl' : venue
         }
 
         # get all the beers listed on the venue's tap list

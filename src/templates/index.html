@@ -11,13 +11,15 @@
 <body>
     <div id="app">
         <div id="top-bar">
-            <img src="./static/logo.svg" id="logo" alt="BeerQuest"/>
+            <a href="/">
+                <img id="logo" src="./static/beer.svg" alt="BeerQuest" />
+            </a>
         </div>
         <div class="container">
             <p class="section-header">What are you looking for?</p>
             <div class="section">
                 {% for type in beers %}
-                    <a class="beer-tile" href="/{{ type }}">{{ beers[type]["type"] }}</a>
+                    <a class="type-tile" href="/{{ type }}">{{ beers[type]["type"] }}</a>
                 {% endfor %}
           </div>
         </div>
