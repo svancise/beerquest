@@ -5,6 +5,7 @@ import json
 import re
 import os, shutil
 from jinja2 import Environment, FileSystemLoader
+import boto3
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -72,7 +73,7 @@ def create_site(data):
         f.write(html)
 
     # copy static assests
-    shutil.copytree("./static", "../site/static")
+    # shutil.copytree("./static", "../site/static")
 
 # gathers all of the info for our desired venues
 def getBeers():
@@ -140,10 +141,73 @@ def getBeers():
 
     return beers
 
+def updateSite():
+    s3 = boto3.client('s3')
+    # empty the bucket
+    response = s3.list_objects_v2(Bucket='beerquest')
+    if 'Contents' in response:
+        for item in response['Contents']:
+            s3.delete_object(Bucket='beerquest', Key=item['Key'])
+            while response['KeyCount'] == 1000:
+                response = client.list_objects_v2(
+                  Bucket=S3_BUCKET,
+                  StartAfter=response['Contents'][0]['Key'],
+                )
+                for item in response['Contents']:
+                    print('deleting file', item['Key'])
+                    s3.delete_object(Bucket='beerquest', Key=item['Key'])
+
+    # load the site to s3
+    for root, dirs, files in os.walk('../site'):
+        for name in files:
+            s3.upload_file(
+                os.path.join(root, name), 
+                'beerquest', 
+                os.path.join(root, name).replace('../site/', ''), 
+                ExtraArgs={
+                    'ACL':'public-read',
+                    "ContentType": 'text/html'
+                }
+            )
+
+    # our static assests
+    for root, dirs, files in os.walk('./static/img'):
+            for name in files:
+                if name != '.gitkeep':
+                    s3.upload_file(
+                        os.path.join(root, name), 
+                        'beerquest', 
+                        os.path.join(root, name).replace('./', ''), 
+                        ExtraArgs={
+                            'ACL':'public-read',
+                            "ContentType": 'image/png'
+                        }
+                    )
+    s3.upload_file(
+        './static/beer.svg', 
+        'beerquest', 
+        'static/beer.svg', 
+        ExtraArgs={
+            'ACL':'public-read',
+            "ContentType": 'image/svg+xml'
+        }
+    )
+
+    s3.upload_file(
+        './static/main.css', 
+        'beerquest', 
+        'static/main.css', 
+        ExtraArgs={
+            'ACL':'public-read',
+            "ContentType": 'text/css'
+        }
+    )
+        
 
 def main():
     beers = getBeers()
     create_site(beers)
+    updateSite()
 
 if __name__ == '__main__':
     main()
