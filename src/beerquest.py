@@ -19,8 +19,9 @@ VENUES_TO_COLLECT = [
     'https://untappd.com/v/ocelot-brewing-company/1879890',
     'https://untappd.com/v/vanish-brewery/4152486',
     'https://untappd.com/v/adroit-theory-brewing-company/548535',
-    'https://untappd.com/v/crooked-run-brewing/886724',
-    'https://untappd.com/v/quattro-goombas-virginia-craft-brewery/2648732'
+    'https://untappd.com/v/crooked-run-brewing/886724?ng_menu_id=b97329c0-decd-48e6-809f-b91f3fcd229e', #sterling location
+    'https://untappd.com/v/quattro-goombas-virginia-craft-brewery/2648732',
+    'https://untappd.com/v/beltway-brewing-company/913252'
 ]
 
 def render_template(template_filename, context):
@@ -77,19 +78,18 @@ def create_site(data):
 
 # gathers all of the info for our desired venues
 def getBeers():
-    beersByVenue = {}
-    beersByType = {}
-    typeKeys = []
-
     beers = []
 
     for venue in VENUES_TO_COLLECT:
+        # Fake header to appear as a browser.
+        requestHeaders = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'
+        }
         # get the untapped page for the supplied venue.
-        requestData = requests.get(venue)
-        pageText = requestData.text
+        requestData = requests.get(venue, headers=requestHeaders)
 
         # load the page into beautiful soup
-        soup = BeautifulSoup(pageText, "html.parser")
+        soup = BeautifulSoup(requestData.text, "html.parser")
 
         # download the brewery's logo
         logoUrl = soup.find('div', class_='logo').find('img')["src"]
